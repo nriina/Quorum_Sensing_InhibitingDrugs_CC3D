@@ -1,0 +1,342 @@
+<CompuCell3D Revision="20210612" Version="4.2.5">
+   
+   <Metadata>
+      
+      <!-- Basic properties simulation -->
+      <NumberOfProcessors>1</NumberOfProcessors>
+      <DebugOutputFrequency>10</DebugOutputFrequency>
+      <!-- <NonParallelModule Name="Potts"/> -->
+   </Metadata>
+   
+   <Potts>
+      
+      <!-- Basic properties of CPM (GGH) algorithm -->
+      <Dimensions x="500" y="500" z="1"/>
+      <Steps>100000</Steps>
+      <Temperature>10.0</Temperature>
+      <NeighborOrder>1</NeighborOrder>
+      <!-- <Boundary_x>Periodic</Boundary_x> -->
+      <!-- <Boundary_y>Periodic</Boundary_y> -->
+   </Potts>
+   
+   <Plugin Name="CellType">
+      
+      <!-- Listing all cell types in the simulation -->
+      <CellType TypeId="0" TypeName="Medium"/>
+      <CellType TypeId="1" TypeName="WT"/>
+      <CellType TypeId="2" TypeName="UC"/>
+      <CellType TypeId="3" TypeName="D"/>
+   </Plugin>
+   
+   <Plugin Name="Volume"/>
+   
+   <Plugin Name="PixelTracker">
+   
+       <!-- Module tracking pixels of each cell -->
+   </Plugin>
+
+   
+   <Plugin Name="CenterOfMass">
+      
+      <!-- Module tracking center of mass of each cell -->
+   </Plugin>
+
+   
+   <Plugin Name="Chemotaxis">
+   
+       <!-- You may repeat ChemicalField element for each chemical field declared in the PDE solvers -->
+       <!-- Specification of chemotaxis properties of select cell types. -->
+       <ChemicalField Name="nutrient">
+          <ChemotaxisByType Lambda="20.0" Type="WT"/>
+          <ChemotaxisByType Lambda="20.0" Type="UC"/>
+          <ChemotaxisByType Lambda="20.0" Type="D"/>
+       </ChemicalField>
+       
+       <ChemicalField Name="complex_nutrient">
+          <ChemotaxisByType Lambda="20.0" Type="WT"/>
+          <ChemotaxisByType Lambda="20.0" Type="UC"/>
+       </ChemicalField>
+       
+    </Plugin>
+
+   
+   <Plugin Name="Contact">
+      <!-- Specification of adhesion energies -->
+      <Energy Type1="Medium" Type2="Medium">5.0</Energy>
+      <Energy Type1="Medium" Type2="WT">3.0</Energy>
+      <Energy Type1="Medium" Type2="UC">3.0</Energy>
+      <Energy Type1="Medium" Type2="D">3.0</Energy>
+      <Energy Type1="WT" Type2="WT">10.0</Energy>
+      <Energy Type1="WT" Type2="UC">10.0</Energy>
+      <Energy Type1="WT" Type2="D">10.0</Energy>
+      <Energy Type1="UC" Type2="UC">10.0</Energy>
+      <Energy Type1="UC" Type2="D">10.0</Energy>
+      <Energy Type1="D" Type2="D">10.0</Energy>
+      <NeighborOrder>4</NeighborOrder>
+   </Plugin>
+   
+   <Plugin Name="Secretion">
+      
+      <!-- Specification of secretion properties of select cell types. -->
+      <!-- You may repeat Field element for each chemical field declared in the PDE solvers -->
+      <!-- Specification of secretion properties of individual cells can be done in Python -->
+   </Plugin>
+
+   <Steppable Type="DiffusionSolverFE">
+      
+      <!-- Specification of PDE solvers -->
+      <DiffusionField Name="ai">
+         <DiffusionData>
+            <FieldName>ai</FieldName>
+            <GlobalDiffusionConstant>10</GlobalDiffusionConstant>
+            <GlobalDecayConstant>0</GlobalDecayConstant>
+            <!-- Additional options are: -->
+            <!-- <InitialConcentrationExpression>x*y</InitialConcentrationExpression> -->
+            <!-- <ConcentrationFileName>INITIAL CONCENTRATION FIELD - typically a file with path Simulation/NAME_OF_THE_FILE.txt</ConcentrationFileName> -->
+            <DiffusionCoefficient CellType="WT">1</DiffusionCoefficient>
+            <DiffusionCoefficient CellType="UC">1</DiffusionCoefficient>
+            <DiffusionCoefficient CellType="D">1</DiffusionCoefficient>
+            <DecayCoefficient CellType="WT">0</DecayCoefficient>
+            <DecayCoefficient CellType="UC">0</DecayCoefficient>
+            <DecayCoefficient CellType="D">0</DecayCoefficient>
+         </DiffusionData>
+         <!-- <SecretionData> -->
+            <!-- &lt;!&ndash; When secretion is defined inside DissufionSolverFE all secretion constants are scaled automaticaly to account for the extra calls to the diffusion step when handling large diffusion constants &ndash;&gt;  -->
+
+
+            
+            <!-- &lt;!&ndash; Uniform secretion Definition &ndash;&gt;  -->
+
+
+            <!-- <Secretion Type="WT">0.1</Secretion> -->
+            <!-- <Secretion Type="UC">0.1</Secretion> -->
+            <!-- <Secretion Type="D">0.1</Secretion> -->
+            <!-- <SecretionOnContact SecreteOnContactWith="WT,UC,D" Type="D">0.2</SecretionOnContact> -->
+            <!-- <ConstantConcentration Type="D">0.1</ConstantConcentration> -->
+         <!-- </SecretionData> -->
+         <BoundaryConditions>
+            <Plane Axis="X">
+               <!-- <ConstantValue PlanePosition="Min" Value="10.0"/> -->
+               <!-- <ConstantValue PlanePosition="Max" Value="5.0"/> -->
+               <!-- Other options are (examples): -->
+               <!-- <Periodic/> -->
+               <!-- <ConstantDerivative PlanePosition="Min" Value="10.0"/> -->
+            </Plane>
+            <Plane Axis="Y">
+               <!-- <ConstantDerivative PlanePosition="Min" Value="10.0"/> -->
+               <!-- <ConstantDerivative PlanePosition="Max" Value="5.0"/> -->
+               <!-- Other options are (examples): -->
+               <!-- <Periodic/> -->
+               <!-- <ConstantValue PlanePosition="Min" Value="10.0"/> -->
+            </Plane>
+         </BoundaryConditions>
+      </DiffusionField>
+      <DiffusionField Name="public_good">
+         <DiffusionData>
+            <FieldName>public_good</FieldName>
+            <GlobalDiffusionConstant>1</GlobalDiffusionConstant>
+            <GlobalDecayConstant>0.001</GlobalDecayConstant>
+            <!-- Additional options are: -->
+            <!-- <InitialConcentrationExpression>x*y</InitialConcentrationExpression> -->
+            <!-- <ConcentrationFileName>INITIAL CONCENTRATION FIELD - typically a file with path Simulation/NAME_OF_THE_FILE.txt</ConcentrationFileName> -->
+            <DiffusionCoefficient CellType="WT">0.001</DiffusionCoefficient>
+            <DiffusionCoefficient CellType="UC">0.001</DiffusionCoefficient>
+            <DiffusionCoefficient CellType="D">0.001</DiffusionCoefficient>
+            <DecayCoefficient CellType="WT">0.0001</DecayCoefficient>
+            <DecayCoefficient CellType="UC">0.0001</DecayCoefficient>
+            <DecayCoefficient CellType="D">0.0001</DecayCoefficient>
+         </DiffusionData>
+         <!-- <SecretionData> -->
+            <!-- &lt;!&ndash; When secretion is defined inside DissufionSolverFE all secretion constants are scaled automaticaly to account for the extra calls to the diffusion step when handling large diffusion constants &ndash;&gt;  -->
+
+
+            
+            <!-- &lt;!&ndash; Uniform secretion Definition &ndash;&gt;  -->
+
+
+            <!-- <Secretion Type="WT">0.1</Secretion> -->
+            <!-- <Secretion Type="UC">0.1</Secretion> -->
+            <!-- <Secretion Type="D">0.1</Secretion> -->
+            <!-- <SecretionOnContact SecreteOnContactWith="WT,UC,D" Type="D">0.2</SecretionOnContact> -->
+            <!-- <ConstantConcentration Type="D">0.1</ConstantConcentration> -->
+         <!-- </SecretionData> -->
+         <BoundaryConditions>
+            <Plane Axis="X">
+               <!-- <ConstantValue PlanePosition="Min" Value="10.0"/> -->
+               <!-- <ConstantValue PlanePosition="Max" Value="5.0"/> -->
+               <!-- Other options are (examples): -->
+               <!-- <Periodic/> -->
+               <!-- <ConstantDerivative PlanePosition="Min" Value="10.0"/> -->
+            </Plane>
+            <Plane Axis="Y">
+               <!-- <ConstantDerivative PlanePosition="Min" Value="10.0"/> -->
+               <!-- <ConstantDerivative PlanePosition="Max" Value="5.0"/> -->
+               <!-- Other options are (examples): -->
+               <!-- <Periodic/> -->
+               <!-- <ConstantValue PlanePosition="Min" Value="10.0"/> -->
+            </Plane>
+         </BoundaryConditions>
+      </DiffusionField>
+      <DiffusionField Name="nutrient">
+         <DiffusionData>
+            <FieldName>nutrient</FieldName>
+            <GlobalDiffusionConstant>1</GlobalDiffusionConstant>
+            <GlobalDecayConstant>0</GlobalDecayConstant>
+            <!-- Additional options are: -->
+            <InitialConcentrationExpression>20</InitialConcentrationExpression>
+            <!-- <ConcentrationFileName>INITIAL CONCENTRATION FIELD - typically a file with path Simulation/NAME_OF_THE_FILE.txt</ConcentrationFileName> -->
+            <DiffusionCoefficient CellType="WT">1</DiffusionCoefficient>
+            <DiffusionCoefficient CellType="UC">1</DiffusionCoefficient>
+            <DiffusionCoefficient CellType="D">1</DiffusionCoefficient>
+            <DecayCoefficient CellType="WT">0</DecayCoefficient>
+            <DecayCoefficient CellType="UC">0</DecayCoefficient>
+            <DecayCoefficient CellType="D">0</DecayCoefficient>
+         </DiffusionData>
+         <!-- <SecretionData> -->
+            <!-- &lt;!&ndash; When secretion is defined inside DissufionSolverFE all secretion constants are scaled automaticaly to account for the extra calls to the diffusion step when handling large diffusion constants &ndash;&gt;  -->
+
+
+            
+            <!-- &lt;!&ndash; Uniform secretion Definition &ndash;&gt;  -->
+
+
+            <!-- <Secretion Type="WT">0.1</Secretion> -->
+            <!-- <Secretion Type="UC">0.1</Secretion> -->
+            <!-- <Secretion Type="D">0.1</Secretion> -->
+            <!-- <SecretionOnContact SecreteOnContactWith="WT,UC,D" Type="D">0.2</SecretionOnContact> -->
+            <!-- <ConstantConcentration Type="D">0.1</ConstantConcentration> -->
+         <!-- </SecretionData> -->
+         <BoundaryConditions>
+            <Plane Axis="X">
+               <ConstantValue PlanePosition="Min" Value="1.0"/>
+               <!-- <ConstantValue PlanePosition="Max" Value="10.0"/> -->
+               <!-- Other options are (examples): -->
+               <!-- <Periodic/> -->
+               <!-- <ConstantDerivative PlanePosition="Min" Value="10.0"/> -->
+            </Plane>
+            <Plane Axis="Y">
+               <ConstantValue PlanePosition="Min" Value="1.0"/>
+               <!-- <ConstantValue PlanePosition="Max" Value="10.0"/> -->
+               <!-- Other options are (examples): -->
+               <!-- <Periodic/> -->
+               <!-- <ConstantValue PlanePosition="Min" Value="10.0"/> -->
+            </Plane>
+         </BoundaryConditions>
+      </DiffusionField>
+      
+      <DiffusionField Name="complex_nutrient">
+         <DiffusionData>
+            <FieldName>complex_nutrient</FieldName>
+            <GlobalDiffusionConstant>0.1</GlobalDiffusionConstant>
+            <GlobalDecayConstant>0</GlobalDecayConstant>
+            <!-- Additional options are: -->
+            <InitialConcentrationExpression>50</InitialConcentrationExpression>
+            <!-- <ConcentrationFileName>INITIAL CONCENTRATION FIELD - typically a file with path Simulation/NAME_OF_THE_FILE.txt</ConcentrationFileName> -->
+            <DiffusionCoefficient CellType="WT">0.1</DiffusionCoefficient>
+            <DiffusionCoefficient CellType="UC">0.1</DiffusionCoefficient>
+            <DiffusionCoefficient CellType="D">0.1</DiffusionCoefficient>
+            <DecayCoefficient CellType="WT">0</DecayCoefficient>
+            <DecayCoefficient CellType="UC">0</DecayCoefficient>
+            <DecayCoefficient CellType="D">0</DecayCoefficient>
+         </DiffusionData>
+         <!-- <SecretionData> -->
+            <!-- &lt;!&ndash; When secretion is defined inside DissufionSolverFE all secretion constants are scaled automaticaly to account for the extra calls to the diffusion step when handling large diffusion constants &ndash;&gt;  -->
+
+
+            
+            <!-- &lt;!&ndash; Uniform secretion Definition &ndash;&gt;  -->
+
+
+            <!-- <Secretion Type="WT">0.1</Secretion> -->
+            <!-- <Secretion Type="UC">0.1</Secretion> -->
+            <!-- <Secretion Type="D">0.1</Secretion> -->
+            <!-- <SecretionOnContact SecreteOnContactWith="WT,UC,D" Type="D">0.2</SecretionOnContact> -->
+            <!-- <ConstantConcentration Type="D">0.1</ConstantConcentration> -->
+         <!-- </SecretionData> -->
+         <BoundaryConditions>
+            <Plane Axis="X">
+               <!-- <ConstantValue PlanePosition="Min" Value="10.0"/> -->
+               <!-- <ConstantValue PlanePosition="Max" Value="10.0"/> -->
+               <!-- Other options are (examples): -->
+               <!-- <Periodic/> -->
+               <!-- <ConstantDerivative PlanePosition="Min" Value="10.0"/> -->
+            </Plane>
+            <Plane Axis="Y">
+               <!-- <ConstantValue PlanePosition="Min" Value="10.0"/> -->
+               <!-- <ConstantValue PlanePosition="Max" Value="10.0"/> -->
+               <!-- Other options are (examples): -->
+               <!-- <Periodic/> -->
+               <!-- <ConstantValue PlanePosition="Min" Value="10.0"/> -->
+            </Plane>
+         </BoundaryConditions>
+      </DiffusionField>
+    
+        <DiffusionField Name="qsi">
+         <DiffusionData>
+            <FieldName>qsi</FieldName>
+            <GlobalDiffusionConstant>10</GlobalDiffusionConstant>
+            <GlobalDecayConstant>0</GlobalDecayConstant>
+            <!-- Additional options are: -->
+            <InitialConcentrationExpression>10</InitialConcentrationExpression>
+            <!-- <ConcentrationFileName>INITIAL CONCENTRATION FIELD - typically a file with path Simulation/NAME_OF_THE_FILE.txt</ConcentrationFileName> -->
+            <DiffusionCoefficient CellType="WT">10</DiffusionCoefficient>
+            <DiffusionCoefficient CellType="UC">10</DiffusionCoefficient>
+            <DiffusionCoefficient CellType="D">10</DiffusionCoefficient>
+            <DecayCoefficient CellType="WT">0</DecayCoefficient>
+            <DecayCoefficient CellType="UC">0</DecayCoefficient>
+            <DecayCoefficient CellType="D">0</DecayCoefficient>
+         </DiffusionData>
+         <!-- <SecretionData> -->
+            <!-- &lt;!&ndash; When secretion is defined inside DissufionSolverFE all secretion constants are scaled automaticaly to account for the extra calls to the diffusion step when handling large diffusion constants &ndash;&gt;  -->
+
+
+            
+            <!-- &lt;!&ndash; Uniform secretion Definition &ndash;&gt;  -->
+
+
+            <!-- <Secretion Type="WT">0.1</Secretion> -->
+            <!-- <Secretion Type="UC">0.1</Secretion> -->
+            <!-- <Secretion Type="D">0.1</Secretion> -->
+            <!-- <SecretionOnContact SecreteOnContactWith="WT,UC,D" Type="D">0.2</SecretionOnContact> -->
+            <!-- <ConstantConcentration Type="D">0.1</ConstantConcentration> -->
+         <!-- </SecretionData> -->
+         <BoundaryConditions>
+            <Plane Axis="X">
+               <ConstantValue PlanePosition="Min" Value="1.0"/>
+               <ConstantValue PlanePosition="Max" Value="10.0"/>
+               <!-- Other options are (examples): -->
+               <!-- <Periodic/> -->
+               <!-- <ConstantDerivative PlanePosition="Min" Value="10.0"/> -->
+            </Plane>
+            <Plane Axis="Y">
+               <!-- <ConstantValue PlanePosition="Min" Value="10.0"/> -->
+               <!-- <ConstantValue PlanePosition="Max" Value="10.0"/> -->
+               <!-- Other options are (examples): -->
+               <!-- <Periodic/> -->
+               <!-- <ConstantValue PlanePosition="Min" Value="10.0"/> -->
+            </Plane>
+         </BoundaryConditions>
+        </DiffusionField>
+   </Steppable>
+   
+   <Steppable Type="BlobInitializer">
+      
+      <!-- Initial layout of cells in the form of spherical (circular in 2D) blob -->
+      <Region>
+         <Center x="250" y="250" z="0"/>
+         <Radius>100</Radius>
+         <Gap>1</Gap>
+         <Width>9</Width>
+         <Types>D,UC,WT</Types>
+      </Region>
+      
+      <!-- <Region> -->
+         <!-- <Center x="75" y="50" z="0"/> -->
+         <!-- <Radius>4</Radius> -->
+         <!-- <Gap>3</Gap> -->
+         <!-- <Width>9</Width> -->
+         <!-- <Types>WT</Types> -->
+      <!-- </Region> -->
+      
+   </Steppable>
+</CompuCell3D>

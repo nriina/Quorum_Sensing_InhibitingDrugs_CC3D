@@ -1,0 +1,5 @@
+<Simulation version="4.2.5">
+   <XMLScript Type="XMLScript">Simulation/QSv7.xml</XMLScript>
+   <PythonScript Type="PythonScript">Simulation/QSv7.py</PythonScript>
+   <Resource Type="Python">Simulation/QSv7Steppables.py</Resource>
+</Simulation>

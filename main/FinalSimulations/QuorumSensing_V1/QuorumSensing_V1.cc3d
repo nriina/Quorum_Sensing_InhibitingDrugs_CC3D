@@ -1,5 +1,0 @@
-<Simulation version="4.3.2">
-   <XMLScript Type="XMLScript">Simulation/QuorumSensing_V1.xml</XMLScript>
-   <PythonScript Type="PythonScript">Simulation/QuorumSensing_V1.py</PythonScript>
-   <Resource Type="Python">Simulation/QuorumSensing_V1Steppables.py</Resource>
-</Simulation>

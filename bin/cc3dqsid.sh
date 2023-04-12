@@ -25,8 +25,8 @@ echo ${TOOL_HOME}
 export LC_NUMERIC="C.UTF-8"
 
 
-CC3D_TOOL_NAME=cc3dQSID
-CC3D_TOOL_FILENAME=hw4_1.cc3d
+CC3D_TOOL_NAME=cc3dqsid
+CC3D_TOOL_FILENAME=QSv7.cc3d
 # CC3D_DEMO_PREFIX=Demos/BookChapterDemos_ComputationalMethodsInCellBiology/VascularTumor/
 USER_DEMO_PATH=$HOME/CompuCell3D_Demos/${CC3D_TOOL_NAME}
 echo ${USER_DEMO_PATH}

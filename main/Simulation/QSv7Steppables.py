@@ -4,13 +4,66 @@ import numpy as np
 from cc3d.core.PySteppables import *
 
 # Simulation Parameters
-
 mutation = True
 s_decay_modifier = True
 cheating_consequence = True
 starvation_bonus = True
-wt_invasion = False
-qsi_active = False
+wt_invasion = True
+qsi_active = True
+
+dilution = True
+distance_btw_dilutions = 1000
+dilution_bottleneck = True
+dilution_factor = 0.75
+track_cooperators = True
+
+
+class ParamSteeringSteppable(SteppableBasePy):
+    def __init__(self, frequency=10):
+        SteppableBasePy.__init__(self, frequency)
+
+    def add_steering_panel(self):
+        self.add_steering_param(name='mutation', val=1, enum=[1,0], widget_name='combobox')
+        self.add_steering_param(name='qs_decay', val=1, enum=[1,0], widget_name='combobox')
+        self.add_steering_param(name='cheating_consequence', val=1, enum=[1,0], widget_name='combobox')
+        self.add_steering_param(name='starvation_bonus', val=1, enum=[1,0], widget_name='combobox')
+        self.add_steering_param(name='wt_invasion', val=1, enum=[1,0], widget_name='combobox')
+        self.add_steering_param(name='qsi_active', val=1, enum=[1, 0], widget_name='combobox')
+        
+        self.add_steering_param(name='dilution', val=1, enum=[1, 0], widget_name='combobox')
+        self.add_steering_param(name='distance_btw_dilutions', val=1000)
+        self.add_steering_param(name='dilution_bottleneck', val=1, enum=[1, 0], widget_name='combobox')
+        self.add_steering_param(name='dilution_factor', val=0.75)
+        self.add_steering_param(name='track_cooperators', val=1, enum=[1, 0], widget_name='combobox')
+        self.add_steering_param(name='mutation_probability', val=0.001)
+
+    def process_steering_panel_data(self):
+        global mutation
+        global s_decay_modifier
+        global cheating_consequence
+        global starvation_bonus
+        global wt_invasion
+        global qsi_active
+        
+        global dilution
+        global distance_btw_dilutions
+        global dilution_bottleneck
+        global dilution_factor
+        global track_cooperators
+        
+        mutation = self.get_steering_param('mutation')
+        s_decay_modifier = self.get_steering_param('qs_decay')
+        cheating_consequence = self.get_steering_param('cheating_consequence')
+        starvation_bonus = self.get_steering_param('starvation_bonus')
+        wt_invasion = self.get_steering_param('wt_invasion')
+        qsi_active = self.get_steering_param('qsi_active')
+        
+        dilution = self.get_steering_param('dilution')
+        distance_btw_dilutions = self.get_steering_param('distance_btw_dilutions')
+        dilution_bottleneck = self.get_steering_param('dilution_bottleneck')
+        dilution_factor = self.get_steering_param('dilution_factor')
+        track_cooperators = self.get_steering_param('track_cooperators')
+        
 
 """
 mutation parameter decides whether or not cells will mutate as the simulation progresses. Its
@@ -36,8 +89,41 @@ qsi_active parameter describes whether or not to include the effects of the QSI 
 The IC50 of any quorum sensing inhibitor can be simulated by changing the reciprocal function
 that describes how the public good secretion is effected by the drug. Secretion of 1 = 100% 
 Secretion of 0.5 =  50% QS activitiy.
-"""
 
+Dilution refers to the broad set of parameters that deals with addition of fresh media (nutrients)
+
+distance_btw _dilution refers to the amount of mcs between dilution events
+
+dilution_bottleneck True means that cells are randomly killed to simulate backdiltion from a larger population
+
+dilution_factor refers to the percentage of cells that are killed in a dilution event.
+
+track_cooperators produces a figure that outputs the fraction of population that is cooperating (QS)
+"""
+# Function Library
+def modify_value(variable, ceiling, modifier, exponential=True, linear=False):
+
+    ceiling = ceiling * variable
+    
+    if linear and not exponential:
+        if modifier < ceiling:
+            mod_var = variable + modifier
+        else:
+            mod_var = variable + ceiling
+        
+        return mod_var
+    
+    elif exponential and not linear:
+        if modifier < ceiling:
+            mod_var = variable * modifier
+        else:
+            mod_var = variable * modifier
+        
+        return mod_var
+    
+    else:
+        print('Modification cannot be both exponential and linear. Set one to False')
+                
 class ConstraintInitializerSteppable(SteppableBasePy):
     def __init__(self,frequency=1):
         SteppableBasePy.__init__(self,frequency)
@@ -48,6 +134,14 @@ class ConstraintInitializerSteppable(SteppableBasePy):
 
             cell.targetVolume = 40
             cell.lambdaVolume = 4.0
+            
+            cd = self.chemotaxisPlugin.addChemotaxisData(cell, "complex nutrient")
+            cd.setLambda(30.0)
+            
+            nd = self.chemotaxisPlugin.addChemotaxisData(cell, 'nutrient')
+            nd.setLambda(20.0)
+
+
             
             # Create Initial Sensed AI key 
             cell.dict['Sensed AI'] = 0
@@ -107,6 +201,14 @@ class GrowthSteppable(SteppableBasePy):
         
         self.plot_ai.add_plot("AI Uptake", style='Lines', color='purple', size=3)
         
+        if track_cooperators:
+            self.plot_coop = self.add_new_plot_window(title='Frequency of Cooperation',
+                                                 x_axis_title='MonteCarlo Step (MCS)',
+                                                 y_axis_title='Frequency', x_scale_type='linear', y_scale_type='linear',
+                                                 grid=False)
+            
+            self.plot_coop.add_plot('Cooperating Fraction', style='Lines', color='white', size=3)
+        
         if qsi_active:
             self.plot_qsi = self.add_new_plot_window(title='QSI Uptake',
                                                  x_axis_title='MonteCarlo Step (MCS)',
@@ -118,38 +220,23 @@ class GrowthSteppable(SteppableBasePy):
 
     
     def step(self, mcs):
-        # Function Library
-        def modify_value(variable, ceiling, modifier, exponential=True, linear=False):
+        print("step qsi value:",qsi_active)
         
-            ceiling = ceiling * variable
-            
-            if exponential and not linear:
-                if modifier < ceiling:
-                    mod_var = variable + modifier
-                else:
-                    mod_var = variable + ceiling
-                
-                return mod_var
-            
-            elif linear and not exponential:
-                if modifier < ceiling:
-                    mod_var = variable * modifier
-                else:
-                    mod_var = variable * ceiling
-                
-                return mod_var
-            
-            else:
-                print('Modification cannot be both exponential and linear. Set one to False')
+        if dilution:
+            if not (mcs % distance_btw_dilutions):
+                self.field.nutrient[0:100, 0:100, 0] = 20
+                self.field.complex_nutrient[0:100, 0:100, 0] = 50
+                self.field.ai[0:100, 0:100, 0] = 0
+                self.field.public_good[0:100, 0:100, 0] = 0
         
         # WT invasion
         if wt_invasion:
             # Spawn WT After Simulation initiation 
-            if mcs == 500 and len(self.cell_list_by_type(self.WT)) < 1:
+            if mcs == 1001 and len(self.cell_list_by_type(self.D)) < 1:
                 # size of cell will be 3x3x1
-                self.cell_field[50:54, 50:54, 0] = self.new_cell(self.WT)
-                for cell in self.cell_list_by_type(self.WT):
-                    cell.dict['Me'] = 10
+                self.cell_field[50:54, 50:54, 0] = self.new_cell(self.D)
+                for cell in self.cell_list_by_type(self.D):
+                    cell.dict['Me'] = 1000
                     cell.targetVolume = 40
                     cell.lambdaVolume = 4.0
                     cell.dict['sensor'] = 0
@@ -171,7 +258,7 @@ class GrowthSteppable(SteppableBasePy):
         
         # Define Function Variables
         decay_rate = 0.05
-        mutation_prob = 0.001
+        mutation_prob = self.get_steering_param('mutation_probability')
         starvation_mutation_prob = 0.001
         ai_threshold = 0.7
         ai_lower_thres = 0.5
@@ -202,8 +289,8 @@ class GrowthSteppable(SteppableBasePy):
             if total_public_good > 0:
 
                 # Modify uptake values using modify function
-                mod_nutrient_rel_uptake = modify_value(nutrient_rel_uptake, 10, total_public_good)
-                mod_nutrient_max_uptake = modify_value(nutrient_max_uptake, 10, total_public_good)
+                mod_nutrient_rel_uptake = modify_value(nutrient_rel_uptake, 2, total_public_good, exponential=False, linear=True)
+                mod_nutrient_max_uptake = modify_value(nutrient_max_uptake, 2, total_public_good, exponential=False, linear=True)
 
                 # Call total nutrient for both scenarios
                 total_nutrient = -1*secretor_nutrient.uptakeOutsideCellAtBoundaryTotalCount(cell, 
@@ -212,22 +299,22 @@ class GrowthSteppable(SteppableBasePy):
                 
                 sum_nutrient = total_nutrient
                 
-                if total_nutrient < 0.05:
+                if total_nutrient < 0.005:
                     # Create Chemotactic Preference for Complex
                     cd = self.chemotaxisPlugin.getChemotaxisData(cell, "complex_nutrient")
                     nd = self.chemotaxisPlugin.getChemotaxisData(cell, 'nutrient')
                     if cd:
                         # Increase complex nutrient chemotaxis
-                        l = cd.getLambda() * 2
+                        l = int(cd.getLambda() + 20.0)
                         cd.setLambda(l)
                         
                         # Decrease nutrient chemotaxis
-                        n = nd.getLambda() / 200
+                        n = int(nd.getLambda() / 200)
                         nd.setLambda(n)
 
                     # Define uptake of complex nutrients - set to 1/10th original nutrient uptake
-                    complex_max_uptake = nutrient_max_uptake / 1
-                    complex_rel_uptake = nutrient_rel_uptake / 1
+                    complex_max_uptake = nutrient_max_uptake 
+                    complex_rel_uptake = nutrient_rel_uptake 
                     
                     # Modify uptake values using modify function
                     mod_complex_rel = modify_value(complex_rel_uptake, 10, total_public_good)
@@ -247,7 +334,7 @@ class GrowthSteppable(SteppableBasePy):
                 sum_nutrient = total_nutrient
             
             # Secretion of Autoinducer
-            ai_secretion_factor = cell.volume / cell.dict['Me']
+            ai_secretion_factor =  cell.volume / cell.dict['Me']
             secretor_ai.secreteOutsideCellAtBoundary(cell, ai_secretion_factor)
             
             growth_factor = 0.001 * cell.dict['Me']
@@ -258,12 +345,12 @@ class GrowthSteppable(SteppableBasePy):
                 cell.targetVolume += growth_factor
                 
                 if mutation:
-                    new_type_index = np.random.randint(0,3) + 1
+                    new_type_index = np.random.randint(1,4)
                     # if cell.dict['Me'] >= 10:
                         # if np.random.uniform(0.000, 1.000) < mutation_prob:
                             # cell.type = new_type_index
                     
-                    if cell.dict['Me'] < 500 and mcs > 500:
+                    if sum_nutrient < 1 and mcs > 500 and cell.dict['Me'] < 500:
                         if np.random.uniform(0.000, 1.000) < starvation_mutation_prob:
                             cell.type = new_type_index
 
@@ -273,8 +360,8 @@ class GrowthSteppable(SteppableBasePy):
                 if cell.dict['Me'] > 0:
                     
                     # Set ceiling of Me
-                    if cell.dict['Me'] > 2000:
-                        cell.dict['Me'] = 2000
+                    # if cell.dict['Me'] > 2000:
+                        # cell.dict['Me'] = 2000
                     
                     # Secretion of Public Good 
                     if not (mcs % 10):
@@ -291,6 +378,7 @@ class GrowthSteppable(SteppableBasePy):
                     if cell.dict['sensor'] == 1:
                        if not qsi_active:
                         secretor_public_good.secreteOutsideCellAtBoundary(cell, 1)
+
                         
                        if qsi_active:
                            x = total_qsi
@@ -299,15 +387,10 @@ class GrowthSteppable(SteppableBasePy):
                                 # IC50 of PTSP QSI is 0.35 uM - reciprocal function to describe this is y = 0.1 / (x - 0.15)
                                 y = (0.1 / (x - 0.15))
                                 
-                                if y >=1:
-                           
-                                    secretor_public_good.secreteOutsideCellAtBoundary(cell, y)
-                                
+                                if y <=1:
                                     raw_public_good_excretion += secretor_public_good.secreteOutsideCellAtBoundary(cell, y)
                             
                            else:
-                                secretor_public_good.secreteOutsideCellAtBoundary(cell, 1)
-                                
                                 raw_public_good_excretion += secretor_public_good.secreteOutsideCellAtBoundary(cell, 1)
                                 
                        
@@ -317,7 +400,7 @@ class GrowthSteppable(SteppableBasePy):
                        # Create QS Starvation modifier
                        if starvation_bonus:
                            if cell.dict['Me'] <= 500 and sum_nutrient <= 0.05:
-                               wt_decay_modifier /= 2
+                               wt_decay_modifier /= 10
                                
                                # Modify growth
                                cell.targetVolume -= growth_factor
@@ -339,22 +422,23 @@ class GrowthSteppable(SteppableBasePy):
                 if cell.dict['Me'] > 0:
                     
                     # Set ceiling of Me
-                    if cell.dict['Me'] > 2000:
-                        cell.dict['Me'] = 2000
+                    # if cell.dict['Me'] > 2000:
+                        # cell.dict['Me'] = 2000
                     
                     # Add decay penalty for QS
                     if s_decay_modifier and cell.dict['sensor'] == 1:
                         uc_decay_modifier += 0.0005
                         
-                        if total_ai > ai_threshold:
+                        if total_ai < ai_threshold:
                             dis_to_thres = ai_threshold - total_ai
                             
-                            early_qs_penalty = 1 ** (1 / dis_to_thres)
+                            early_qs_penalty = 3 * np.log10(141.4 * dis_to_thres + 1)
                             
                             uc_decay_modifier += early_qs_penalty
                     
                     if not qsi_active:
                         secretor_public_good.secreteOutsideCellAtBoundary(cell, 1)
+                        uc_decay_modifier += 1
                             
                     if qsi_active:
                         x = total_qsi
@@ -362,15 +446,13 @@ class GrowthSteppable(SteppableBasePy):
                         if x > 0:
                             # IC50 of PTSP QSI is 0.35 uM - reciprocal function to describe this is y = 0.1 / (x - 0.15)
                             y = (0.1 / (x - 0.15))
-                            print(y)
-                            if y >= 1:  
-                                secretor_public_good.secreteOutsideCellAtBoundary(cell, y)
+                            if y <= 1:  
                                 raw_public_good_excretion += secretor_public_good.secreteOutsideCellAtBoundary(cell, y)
-                                
+                                uc_decay_modifier += 1
                         else:
-                            secretor_public_good.secreteOutsideCellAtBoundary(cell, 1)
                                     
                             raw_public_good_excretion += secretor_public_good.secreteOutsideCellAtBoundary(cell, 1)
+                            uc_decay_modifier += 1
                     
                     # Secretion of Public Good and Mutation of WT - dice rolls every 10 steps
                     if not (mcs % 10):
@@ -388,8 +470,8 @@ class GrowthSteppable(SteppableBasePy):
                 if cell.dict['Me'] > 0:
                     
                     # Set ceiling of Me
-                    if cell.dict['Me'] > 2000:
-                        cell.dict['Me'] = 2000
+                    # if cell.dict['Me'] > 2000:
+                        # cell.dict['Me'] = 2000
                     
                     # Set metabolic consequence of no qs genes - use ai field as measure of population divide by nutrients to ease if food is readily avaliable
                     if cheating_consequence:
@@ -397,12 +479,12 @@ class GrowthSteppable(SteppableBasePy):
                         # Set exponential decrease in metabolic consequence if nutrients are readily avaliable
                         
                         try:
-                            metabolic_modifier = (total_ai / 100) ** (1 / sum_nutrient)
-                            if metabolic_modifier > 50:
-                                metabolic_modifier = 50
+                            metabolic_modifier = (total_ai / sum_nutrient)
+                            if metabolic_modifier > 1:
+                                metabolic_modifier = 1
                         
                         except:
-                            metabolic_modifier = 50
+                            metabolic_modifier = 100
                         
                         # Add to delta decay modifier
                         d_decay_modifier += metabolic_modifier
@@ -428,6 +510,10 @@ class GrowthSteppable(SteppableBasePy):
                 self.plot_cell_pops.add_data_point('WT', mcs, (wt_pop/tot_pop) *  100)
                 self.plot_cell_pops.add_data_point('UC', mcs, (uc_pop/tot_pop) * 100)
                 self.plot_cell_pops.add_data_point('D', mcs, (d_pop/tot_pop) * 100)
+                
+                if track_cooperators:
+                    if not (mcs % 100):
+                        self.plot_coop.add_data_point('Cooperating Fraction', mcs, ((wt_pop + uc_pop) / tot_pop))
         
         # Calculate Avg AI Uptake
         avg_ai_uptake = raw_ai_uptake / len(self.cell_list)
@@ -485,17 +571,32 @@ class DeathSteppable(SteppableBasePy):
         SteppableBasePy.__init__(self, frequency)
 
     def step(self, mcs):
+        
         for cell in self.cell_list:
+            # Kill cells randomly during dilution to mimic back dilution
+            if dilution_bottleneck and dilution:
+                if not (mcs % distance_btw_dilutions) and mcs > 0:
+                    cell.dict['dilution_score'] = np.random.uniform(0.0, 1.0)
+                
+                    if cell.dict['dilution_score'] < dilution_factor:
+                        cell.dict['Me'] = 0
+            
             if cell.dict['Me'] <= 0:
                 
                 # Release Nutrients on Cell death
-                # secretor = self.get_field_secretor("nutrient")
-                # secretor.secreteOutsideCellAtBoundary(cell, 10)
+                # if (mcs % distance_btw_dilutions) > 0:
+                    # secretor_nutrient = self.get_field_secretor("nutrient")
+                    # secretor_nutrient.secreteOutsideCellAtBoundary(cell, 10)
+                    
+                    # secretor_complex = self.get_field_secretor('complex_nutrient')
+                    # secretor_complex.secreteOutsideCellAtBoundary(cell, 20)
+                    
+                    # secretor_ai = self.get_field_secretor('ai')
+                    # secretor_ai.secreteOutsideCellAtBoundary(cell, 10)
                 
                 # Cell Death
                 cell.targetVolume=0
                 cell.lambdaVolume=10000
                 self.delete_cell(cell)
-                
-                
+
 

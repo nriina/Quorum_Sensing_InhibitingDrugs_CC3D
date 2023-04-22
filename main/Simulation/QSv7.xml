@@ -11,7 +11,7 @@
    <Potts>
       
       <!-- Basic properties of CPM (GGH) algorithm -->
-      <Dimensions x="500" y="500" z="1"/>
+      <Dimensions x="100" y="100" z="1"/>
       <Steps>100000</Steps>
       <Temperature>10.0</Temperature>
       <NeighborOrder>1</NeighborOrder>
@@ -47,14 +47,14 @@
        <!-- You may repeat ChemicalField element for each chemical field declared in the PDE solvers -->
        <!-- Specification of chemotaxis properties of select cell types. -->
        <ChemicalField Name="nutrient">
-          <ChemotaxisByType Lambda="20.0" Type="WT"/>
-          <ChemotaxisByType Lambda="20.0" Type="UC"/>
-          <ChemotaxisByType Lambda="20.0" Type="D"/>
+          <!-- <ChemotaxisByType Lambda="30.0" Type="WT"/> -->
+          <!-- <ChemotaxisByType Lambda="30.0" Type="UC"/> -->
+          <!-- <ChemotaxisByType Lambda="30.0" Type="D"/> -->
        </ChemicalField>
        
        <ChemicalField Name="complex_nutrient">
-          <ChemotaxisByType Lambda="20.0" Type="WT"/>
-          <ChemotaxisByType Lambda="20.0" Type="UC"/>
+          <!-- <ChemotaxisByType Lambda="00.0" Type="WT"/> -->
+          <!-- <ChemotaxisByType Lambda="00.0" Type="UC"/> -->
        </ChemicalField>
        
     </Plugin>
@@ -135,7 +135,7 @@
          <DiffusionData>
             <FieldName>public_good</FieldName>
             <GlobalDiffusionConstant>1</GlobalDiffusionConstant>
-            <GlobalDecayConstant>0.001</GlobalDecayConstant>
+            <GlobalDecayConstant>0.01</GlobalDecayConstant>
             <!-- Additional options are: -->
             <!-- <InitialConcentrationExpression>x*y</InitialConcentrationExpression> -->
             <!-- <ConcentrationFileName>INITIAL CONCENTRATION FIELD - typically a file with path Simulation/NAME_OF_THE_FILE.txt</ConcentrationFileName> -->
@@ -180,7 +180,7 @@
       <DiffusionField Name="nutrient">
          <DiffusionData>
             <FieldName>nutrient</FieldName>
-            <GlobalDiffusionConstant>1</GlobalDiffusionConstant>
+            <GlobalDiffusionConstant>1e-01</GlobalDiffusionConstant>
             <GlobalDecayConstant>0</GlobalDecayConstant>
             <!-- Additional options are: -->
             <InitialConcentrationExpression>20</InitialConcentrationExpression>
@@ -208,14 +208,14 @@
          <!-- </SecretionData> -->
          <BoundaryConditions>
             <Plane Axis="X">
-               <ConstantValue PlanePosition="Min" Value="1.0"/>
+               <ConstantValue PlanePosition="Min" Value="0.0"/>
                <!-- <ConstantValue PlanePosition="Max" Value="10.0"/> -->
                <!-- Other options are (examples): -->
                <!-- <Periodic/> -->
                <!-- <ConstantDerivative PlanePosition="Min" Value="10.0"/> -->
             </Plane>
             <Plane Axis="Y">
-               <ConstantValue PlanePosition="Min" Value="1.0"/>
+               <ConstantValue PlanePosition="Min" Value="0.0"/>
                <!-- <ConstantValue PlanePosition="Max" Value="10.0"/> -->
                <!-- Other options are (examples): -->
                <!-- <Periodic/> -->
@@ -227,7 +227,7 @@
       <DiffusionField Name="complex_nutrient">
          <DiffusionData>
             <FieldName>complex_nutrient</FieldName>
-            <GlobalDiffusionConstant>0.1</GlobalDiffusionConstant>
+            <GlobalDiffusionConstant>1e-02</GlobalDiffusionConstant>
             <GlobalDecayConstant>0</GlobalDecayConstant>
             <!-- Additional options are: -->
             <InitialConcentrationExpression>50</InitialConcentrationExpression>
@@ -302,15 +302,15 @@
          <!-- </SecretionData> -->
          <BoundaryConditions>
             <Plane Axis="X">
-               <ConstantValue PlanePosition="Min" Value="1.0"/>
+               <ConstantValue PlanePosition="Min" Value="10.0"/>
                <ConstantValue PlanePosition="Max" Value="10.0"/>
                <!-- Other options are (examples): -->
                <!-- <Periodic/> -->
                <!-- <ConstantDerivative PlanePosition="Min" Value="10.0"/> -->
             </Plane>
             <Plane Axis="Y">
-               <!-- <ConstantValue PlanePosition="Min" Value="10.0"/> -->
-               <!-- <ConstantValue PlanePosition="Max" Value="10.0"/> -->
+               <ConstantValue PlanePosition="Min" Value="10.0"/>
+               <ConstantValue PlanePosition="Max" Value="10.0"/>
                <!-- Other options are (examples): -->
                <!-- <Periodic/> -->
                <!-- <ConstantValue PlanePosition="Min" Value="10.0"/> -->
@@ -323,18 +323,26 @@
       
       <!-- Initial layout of cells in the form of spherical (circular in 2D) blob -->
       <Region>
-         <Center x="250" y="250" z="0"/>
-         <Radius>100</Radius>
-         <Gap>1</Gap>
-         <Width>9</Width>
-         <Types>D,UC,WT</Types>
+         <Center x="25" y="50" z="0"/>
+         <Radius>16</Radius>
+         <Gap>0</Gap>
+         <Width>4</Width>
+         <Types>UC</Types>
       </Region>
       
       <!-- <Region> -->
          <!-- <Center x="75" y="50" z="0"/> -->
          <!-- <Radius>4</Radius> -->
-         <!-- <Gap>3</Gap> -->
-         <!-- <Width>9</Width> -->
+         <!-- <Gap>0</Gap> -->
+         <!-- <Width>4</Width> -->
+         <!-- <Types>D</Types> -->
+      <!-- </Region> -->
+      
+      <!-- <Region> -->
+         <!-- <Center x="50" y="75" z="0"/> -->
+         <!-- <Radius>4</Radius> -->
+         <!-- <Gap>0</Gap> -->
+         <!-- <Width>4</Width> -->
          <!-- <Types>WT</Types> -->
       <!-- </Region> -->
       

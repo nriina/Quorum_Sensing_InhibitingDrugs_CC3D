@@ -29,4 +29,7 @@ from QSv7Steppables import DeathSteppable
 CompuCellSetup.register_steppable(steppable=DeathSteppable(frequency=1))
 
 
+from QSv7Steppables import ParamSteeringSteppable
+CompuCellSetup.register_steppable(steppable=ParamSteeringSteppable(frequency=1))
+
 CompuCellSetup.run()
